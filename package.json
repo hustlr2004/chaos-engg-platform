@@ -1,0 +1,13 @@
+{
+  "name": "chaos-engg-platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "api",
+    "load-gen",
+    "targets/payment-api",
+    "targets/auth-service",
+    "dashboard",
+    "infra"
+  ]
+}

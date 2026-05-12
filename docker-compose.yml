@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: chaosdb
+    networks:
+      - chaos-net
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - chaos-net
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - chaos-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - chaos-net
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    networks:
+      - chaos-net
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy
+    ports:
+      - "8474:8474"
+      - "8475:8475"
+    networks:
+      - chaos-net
+
+  chaos-api:
+    build: ./api
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+      - toxiproxy
+    networks:
+      - chaos-net
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - chaos-api
+    networks:
+      - chaos-net
+
+networks:
+  chaos-net:
+    driver: bridge
