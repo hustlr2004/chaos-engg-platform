@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: chaosdb
+      POSTGRES_USER: chaos
+      POSTGRES_PASSWORD: chaos123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - chaos-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - chaos-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - chaos-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - chaos-net
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"
+    networks:
+      - chaos-net
+
+  payment-api:
+    build: ./targets/payment-api
+    container_name: payment-api
+    ports:
+      - "5001:5001"
+    networks:
+      - chaos-net
+
+  chaos-api:
+    build: ./api
+    container_name: chaos-api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://chaos:chaos123@postgres:5432/chaosdb
+      REDIS_URL: redis://redis:6379
+      PROMETHEUS_URL: http://prometheus:9090
+      TARGET_URL: http://payment-api:5001
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - chaos-net
+
+networks:
+  chaos-net:
+    driver: bridge
+
+volumes:
+  pgdata:

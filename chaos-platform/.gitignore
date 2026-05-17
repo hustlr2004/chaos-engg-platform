@@ -1,0 +1,13 @@
+node_modules/
+.env
+dist/
+*.log
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Docker volumes and local runtime data
+docker-volumes/
+volumes/
+data/
+*.volume
